@@ -7,6 +7,8 @@ import re
 import sys
 import datetime
 
+#import lisanalyze_psa
+
 # Build argument parser
 parser = argparse.ArgumentParser(
         description='Simple analyzer for LIS data',
@@ -18,7 +20,7 @@ parser.add_argument('-r', '--human-readable', action='store_true', help='human-r
 parser.add_argument('-s', '--suffix', type=str, default='_result.json', help='set suffix of output files (only when -r not specified)')
 parser.add_argument('-q', '--quiet', action='store_true', help='suppresses verbose messages')
 parser.add_argument('-w', '--warn', action='store_true', help='enable extra warnings')
-#parser.add_argument('--convert', action='store_true', help='enable unit conversion')
+parser.add_argument('--convert', action='store_true', help='enable unit conversion')
 parser.add_argument('--version', action='version', version='%(prog)s 0.1 "Blizzard"')
 args = parser.parse_args()
 
@@ -45,7 +47,7 @@ for file_name in args.file:
         ## Analysis section ##
 
         # global variables #
-        units = {
+        unit = {
                 "PSA": "ng/dl"
                 }
         psa_current_nadir = float('infinity')
@@ -54,16 +56,15 @@ for file_name in args.file:
 
         # logic #
         for time in sorted(lis_struct.keys()):
+                #lisanalyze_psa.analyze(file_name, lis_struct, time, args)
                 # eventually replace with calls to modules
                 # == PSA == #
                 if "PSA" in lis_struct[time]:
-                        if args.warn and lis_struct[time]["PSA"]["units"] != units["PSA"]:
+                        if args.warn and lis_struct[time]["PSA"]["unit"] != unit["PSA"]:
                                 print("WARNING: unit mismatch in entry for {}".format(time), file=sys.stderr)
-                        if re.match(">", lis_struct[time]["PSA"]):
-                                psa_current_nadir = float('infinity')
-                        if re.match("<", lis_struct[time]["PSA"]):
+                        if re.match("<", lis_struct[time]["PSA"]["lab_value"]):
                                 psa_current_nadir = 0
-                        PSA_val = float(lis_struct[time]["PSA"])
+                        PSA_val = float(lis_struct[time]["PSA"]["lab_value"])
                 else:
                         continue
                 if PSA_val < psa_current_nadir:
@@ -72,14 +73,14 @@ for file_name in args.file:
                         event_name = "PSA failure"
                         event_time = time # something happened
                         analysis_time = datetime.datetime.now()
-                        
+
                         eventstr = ""
                         # event_json is *not* cleared across analyses
-                        
+
                         if args.human_readable:
                                 eventstr = "{}: {} at {} ".format(file_name, event_name, time)
                                 if not args.quiet:
-                                        eventstr += "(nadir = {}, value = {} ({}))".format(psa_current_nadir, PSA_val, units["PSA"])
+                                        eventstr += "(nadir = {}, value = {} ({}))".format(psa_current_nadir, PSA_val, unit["PSA"])
                                 if args.output:
                                         outfile = open(args.output, mode='w+')
                                         print(eventstr, file=outfile)
@@ -100,6 +101,10 @@ for file_name in args.file:
                                 if not args.quiet:
                                         print(eventstr)
                 # == End PSA == #
+
+        #print("s-s-s-s-s-s-s-s")
+        #print(lisanalyze_psa.get_results())
+
         ## End analysis section ##
         if args.human_readable and not args.quiet and not eventstr:
                 print("All is well for data file {}!".format(file_name))
