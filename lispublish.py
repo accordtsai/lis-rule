@@ -28,18 +28,23 @@ for result_file_name in args.file:
     result_struct = json.load(result_file_fo)
 
     rss_items = []
+    t = 0
     for key in result_struct.keys():
         if key == "file_name":
             continue
-        rss_items.append(
-            PyRSS2Gen.RSSItem(
-                title = result_struct[key]["event_name"],
-                link = "http://www.hosp.ncku.edu.tw", # placeholder URL
-                description = result_file_name + ": " + result_struct[key]["event_name"] + " detected at " + key + " (analysis performed at " + result_struct[key]["analysis_time"] + ")",
-                guid = PyRSS2Gen.Guid(result_struct["file_name"] + "_" + key + "_" + result_struct[key]["event_name"], isPermaLink=False),
-                pubDate = datetime.datetime.strptime(key, "%Y-%m-%dT%H:%M") - datetime.timedelta(hours=8) # Assuming UTC+8; PyRSS2Gen requires UTC
+        if key == "analysis_time":
+            t = result_struct[key]
+            continue
+        for event_name in result_struct[key]:
+            rss_items.append(
+                PyRSS2Gen.RSSItem(
+                    title = event_name,
+                    link = "http://www.hosp.ncku.edu.tw", # placeholder URL
+                    description = result_file_name + ": " + event_name + " detected at " + key + " (analysis performed at " + t + ")",
+                    guid = PyRSS2Gen.Guid(result_struct["file_name"] + "_" + key + "_" + event_name, isPermaLink=False),
+                    pubDate = datetime.datetime.strptime(key, "%Y-%m-%dT%H:%M") - datetime.timedelta(hours=8) # Assuming UTC+8; PyRSS2Gen requires UTC
+                )
             )
-        )
          #link = "http://www.dalkescientific.com/news/030906-PyRSS2Gen.html",
          #description = "Dalke Scientific today announced PyRSS2Gen-0.0, "
                        #"a library for generating RSS feeds for Python.  ",
@@ -52,7 +57,7 @@ for result_file_name in args.file:
         link = "http://www.hosp.ncku.edu.tw", # placeholder URL
         description = "Experimental automated analysis of laboratory "
                       "test results",
-        lastBuildDate = datetime.datetime.now(),
+        lastBuildDate = datetime.datetime.now() - datetime.timedelta(hours=8),
         items = rss_items
     )
     rss.write_xml(open(result_file_name + args.suffix, "w"))
