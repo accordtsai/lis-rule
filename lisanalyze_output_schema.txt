@@ -3,6 +3,9 @@
 		# Recommendation: 1 file name maps to 1 patient 
 		"type": "string"
 	},
+	"analysis_time": {
+			"type": "string"
+	},
 	"event_time": {
 		# If event is defined over a period, select most recent time
 		"type": "string"
@@ -18,9 +21,6 @@
 					"type": "string"
 				}
 			},
-		},
-		"analysis_time": {
-			"type": "string"
 		}
 	}
 }
