@@ -7,7 +7,8 @@ import re
 import sys
 import datetime
 
-#import lisanalyze_psa
+import modules.lisanalyze_psa
+import modules.lisanalyze_na
 
 # Build argument parser
 parser = argparse.ArgumentParser(
@@ -47,64 +48,90 @@ for file_name in args.file:
         ## Analysis section ##
 
         # global variables #
-        unit = {
-                "PSA": "ng/dl"
-                }
-        psa_current_nadir = float('infinity')
-        eventstr = ""
-        event_json = {}
+        #unit = {
+        #        "PSA": "ng/dl"
+        #        }
+        #psa_current_nadir = float('infinity')
+        #eventstr = ""
+        #event_json = {}
 
         # logic #
         for time in sorted(lis_struct.keys()):
-                #lisanalyze_psa.analyze(file_name, lis_struct, time, args)
+                modules.lisanalyze_psa.analyze(file_name, lis_struct, time, args)
+                modules.lisanalyze_na.analyze(file_name, lis_struct, time, args)
                 # eventually replace with calls to modules
                 # == PSA == #
-                if "PSA" in lis_struct[time]:
-                        if args.warn and lis_struct[time]["PSA"]["unit"] != unit["PSA"]:
-                                print("WARNING: unit mismatch in entry for {}".format(time), file=sys.stderr)
-                        if re.match("<", lis_struct[time]["PSA"]["lab_value"]):
-                                psa_current_nadir = 0
-                        PSA_val = float(lis_struct[time]["PSA"]["lab_value"])
-                else:
-                        continue
-                if PSA_val < psa_current_nadir:
-                        psa_current_nadir = PSA_val
-                if PSA_val - psa_current_nadir > 2:
-                        event_name = "PSA failure"
-                        event_time = time # something happened
-                        analysis_time = datetime.datetime.now()
+                #if "PSA" in lis_struct[time]:
+                #        if args.warn and lis_struct[time]["PSA"]["unit"] != unit["PSA"]:
+                #                print("WARNING: unit mismatch in entry for {}".format(time), file=sys.stderr)
+                #        if re.match(">", lis_struct[time]["PSA"]["lab_value"]):
+                #                psa_current_nadir = float('infinity')
+                #        if re.match("<", lis_struct[time]["PSA"]["lab_value"]):
+                #                psa_current_nadir = 0
+                #        PSA_val = float(lis_struct[time]["PSA"]["lab_value"])
+                #else:
+                #        continue
+                #if PSA_val < psa_current_nadir:
+                #        psa_current_nadir = PSA_val
+                #if PSA_val - psa_current_nadir > 2:
+                #        event_name = "PSA failure"
+                #        event_time = time # something happened
+                #        analysis_time = datetime.datetime.now()
 
-                        eventstr = ""
+                #        eventstr = ""
                         # event_json is *not* cleared across analyses
 
-                        if args.human_readable:
-                                eventstr = "{}: {} at {} ".format(file_name, event_name, time)
-                                if not args.quiet:
-                                        eventstr += "(nadir = {}, value = {} ({}))".format(psa_current_nadir, PSA_val, unit["PSA"])
-                                if args.output:
-                                        outfile = open(args.output, mode='w+')
-                                        print(eventstr, file=outfile)
-                                        outfile.close()
-                                print(eventstr)
-                        else:
-                                event_json["file_name"] = file_name
-                                event_json[event_time] = {} # Compare with Perl, where this line isn't needed due to autovivification...
-                                event_json[event_time]["event_name"] = event_name
-                                event_json[event_time]["analysis_time"] = datetime.datetime.now().isoformat()
-                                eventstr = json.dumps(event_json)
-                                if args.suffix:
+                #        if args.human_readable:
+                #                eventstr = "{}: {} at {} ".format(file_name, event_name, time)
+                #                if not args.quiet:
+                #                        eventstr += "(nadir = {}, value = {} ({}))".format(psa_current_nadir, PSA_val, unit["PSA"])
+                #                if args.output:
+                #                        outfile = open(args.output, mode='w+')
+                #                        print(eventstr, file=outfile)
+                #                        outfile.close()
+                #                print(eventstr)
+                #        else:
+                #                event_json["file_name"] = file_name
+                #                event_json[event_time] = {} # Compare with Perl, where this line isn't needed due to autovivification...
+                #                event_json[event_time]["event_name"] = event_name
+                #                event_json[event_time]["analysis_time"] = datetime.datetime.now().isoformat()
+                #                eventstr = json.dumps(event_json)
+                #                if args.suffix:
                                         # Overwriting JSON file since JSON is not a framed protocol. Best to be safe.
                                         # The JSON file is written to every time an event occurs; this could be a bottleneck.
-                                        outfile = open(file_name + args.suffix, mode='w')
-                                        print(eventstr, file=outfile)
-                                        outfile.close()
-                                if not args.quiet:
-                                        print(eventstr)
+                #                        outfile = open(file_name + args.suffix, mode='w')
+                #                        print(eventstr, file=outfile)
+                #                        outfile.close()
+                #                if not args.quiet:
+                #                        print(eventstr)
                 # == End PSA == #
 
-        #print("s-s-s-s-s-s-s-s")
-        #print(lisanalyze_psa.get_results())
+def merge(*results):
+        result_dict = {}
+        for item in results:
+                for file_name in item.keys():
+                        for event_time in item[file_name].keys():
+                                for event_name in item[file_name][event_time]:
+                                        if file_name not in result_dict.keys():
+                                                result_dict[file_name] = {}
+                                        if event_time not in result_dict[file_name].keys():
+                                                result_dict[file_name][event_time] = []
+                                        result_dict[file_name][event_time].extend(item[file_name][event_time])
+        return result_dict
+
+total_results = merge(modules.lisanalyze_psa.get_results(), modules.lisanalyze_na.get_results())
+
+for file_name in total_results.keys():
+        outfile = open(file_name + args.suffix, mode='w')
+
+        # Add file_name and analysis_time params before we print
+        total_results[file_name]["file_name"] = file_name
+        total_results[file_name]["analysis_time"] = datetime.datetime.now().isoformat()
+        
+        print(json.dumps(total_results[file_name]))
+        print(json.dumps(total_results[file_name]), file=outfile)
+        outfile.close()
 
         ## End analysis section ##
-        if args.human_readable and not args.quiet and not eventstr:
-                print("All is well for data file {}!".format(file_name))
+if args.human_readable and not args.quiet and not eventstr:
+        print("All is well for data file {}!".format(file_name))
