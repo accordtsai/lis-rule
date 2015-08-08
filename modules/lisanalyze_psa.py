@@ -60,47 +60,47 @@ def analyze(file_name, lis_struct, time, args):
     if psa_val < __psa_current_nadir:
         __psa_current_nadir = psa_val
 
-    # Out-of-normal-range warning (currently disabled); provided values take precedence
-    #if "ref_high" in lis_struct[time]["PSA"].keys():
-    #    if psa_val > lis_struct[time]["PSA"]["ref_high"]:
-    #        event_time = time
-    #        if file_name not in __event_dict.keys():
-    #            __event_dict[file_name] = {}
-    #        if event_time not in __event_dict[file_name].keys():
-    #            __event_dict[file_name][event_time] = []
-    #        event_str = "PSA too high (current value {}; reference value {})".format(psa_val, lis_struct[time]["PSA"]["ref_high"])
-    #        __event_dict[file_name][event_time].append(event_str)
-    #else:
-    #    if args.warn:
-    #        print("WARNING: higher reference value not provided; falling back to built-in value", file=sys.stderr)
-    #    if psa_val > __psa_ul:
-    #        event_time = time
-    #        if file_name not in __event_dict.keys():
-    #            __event_dict[file_name] = {}
-    #        if event_time not in __event_dict[file_name].keys():
-    #            __event_dict[file_name][event_time] = []
-    #        event_str = "PSA too high (current value {}; reference value {})".format(psa_val, __psa_ul)
-    #        __event_dict[file_name][event_time].append(event_str)
-    #if "ref_low" in lis_struct[time]["PSA"].keys():
-    #    if psa_val < lis_struct[time]["PSA"]["ref_low"]:
-    #        event_time = time
-    #        if file_name not in __event_dict.keys():
-    #            __event_dict[file_name] = {}
-    #        if event_time not in __event_dict[file_name].keys():
-    #            __event_dict[file_name][event_time] = []
-    #        event_str = "PSA too low (current value {}; reference value {})".format(psa_val, lis_struct[time]["PSA"]["ref_low"])
-    #        __event_dict[file_name][event_time].append(event_str)
-    #else:
-    #    if args.warn:
-    #        print("WARNING: lower reference value not provided; falling back to built-in value", file=sys.stderr)
-    #    if psa_val < __psa_ul:
-    #        event_time = time
-    #        if file_name not in __event_dict.keys():
-    #            __event_dict[file_name] = {}
-    #        if event_time not in __event_dict[file_name].keys():
-    #            __event_dict[file_name][event_time] = []
-    #        event_str = "PSA too low (current value {}; reference value {})".format(psa_val, __psa_ll)
-    #        __event_dict[file_name][event_time].append(event_str)
+    # Out-of-normal-range warning; provided values take precedence
+    if "ref_high" in lis_struct[time]["PSA"].keys():
+        if lis_struct[time]["PSA"]["lab_value"] > lis_struct[time]["PSA"]["ref_high"]:
+            event_time = time
+            if file_name not in __event_dict.keys():
+                __event_dict[file_name] = {}
+            if event_time not in __event_dict[file_name].keys():
+                __event_dict[file_name][event_time] = []
+            event_str = "PSA too high (current value {} ; reference value {} ({}))".format(lis_struct[time]["PSA"]["lab_value"], lis_struct[time]["PSA"]["ref_high"], lis_struct[time]["PSA"]["unit"])
+            __event_dict[file_name][event_time].append(event_str)
+    else:
+        if args.warn:
+            print("WARNING: higher reference value not provided; falling back to built-in value", file=sys.stderr)
+        if psa_val > __psa_ul:
+            event_time = time
+            if file_name not in __event_dict.keys():
+                __event_dict[file_name] = {}
+            if event_time not in __event_dict[file_name].keys():
+                __event_dict[file_name][event_time] = []
+            event_str = "PSA too high (current value {}; reference value {} ({}))".format(psa_val, __psa_ul, __unit)
+            __event_dict[file_name][event_time].append(event_str)
+    if "ref_low" in lis_struct[time]["PSA"].keys():
+        if lis_struct[time]["PSA"]["lab_value"] < lis_struct[time]["PSA"]["ref_low"]:
+            event_time = time
+            if file_name not in __event_dict.keys():
+                __event_dict[file_name] = {}
+            if event_time not in __event_dict[file_name].keys():
+                __event_dict[file_name][event_time] = []
+            event_str = "PSA too low (current value {}; reference value {} ({}))".format(lis_struct[time]["PSA"]["lab_value"], lis_struct[time]["PSA"]["ref_low"], lis_struct[time]["PSA"]["unit"])
+            __event_dict[file_name][event_time].append(event_str)
+    else:
+        if args.warn:
+            print("WARNING: lower reference value not provided; falling back to built-in value", file=sys.stderr)
+        if psa_val < __psa_ll:
+            event_time = time
+            if file_name not in __event_dict.keys():
+                __event_dict[file_name] = {}
+            if event_time not in __event_dict[file_name].keys():
+                __event_dict[file_name][event_time] = []
+            event_str = "PSA too low (current value {}; reference value {} ({}))".format(psa_val, __psa_ll, __unit)
+            __event_dict[file_name][event_time].append(event_str)
 
     # PSA increase by 2.0 ng/dl (Prostate Cancer Foundation)
     if psa_val - __psa_current_nadir > 2:
